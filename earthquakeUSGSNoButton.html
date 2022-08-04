@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>USGS Earthquake Feed</title>
+    <meta http-equiv="Cache-Control" content="no-store" />
+    
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script src="https://connectors.tableau.com/libs/tableauwdc-2.3.latest.js" type="text/javascript"></script>
+
+    <script> 
+    
+    let _getSchema = function _getSchema (schemaCallback) { var cols = [{
+            id: "id",
+            dataType: tableau.dataTypeEnum.string
+        }, {
+            id: "mag",
+            alias: "magnitude",
+            dataType: tableau.dataTypeEnum.float
+        }, {
+            id: "title",
+            alias: "title",
+            dataType: tableau.dataTypeEnum.string
+        }, {
+            id: "location",
+            dataType: tableau.dataTypeEnum.geometry
+        }];
+
+        var tableSchema = {
+            id: "earthquakeFeed",
+            alias: "Earthquakes with magnitude greater than 4.5 in the last seven days",
+            columns: cols
+        };
+
+        schemaCallback([tableSchema]);};
+        ;
+        
+    
+        function _getData(table, doneCallback) {
+            
+            $.getJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson", function(resp) {
+            var feat = resp.features,
+                tableData = [];
+
+            // Iterate over the JSON object
+            for (var i = 0, len = feat.length; i < len; i++) {
+                tableData.push({
+                    "id": feat[i].id,
+                    "mag": feat[i].properties.mag,
+                    "title": feat[i].properties.title,
+                    "location": feat[i].geometry
+                });
+            }
+
+            table.appendRows(tableData);
+            doneCallback();
+        });
+        };
+    
+         // This function set up the WDC main methods to have a successful integration
+         (function () {
+            //tableau variable is imported by the script tableauwdc-2.3.latest.js
+            var myConnector = tableau.makeConnector();
+            // After creating a new connector, we set up the Auth customisation param
+            tableau.authType = tableau.authTypeEnum.custom;
+            // Auth key-api configuration
+            tableau.password = 'demo-api-key';
+
+            // We rewrite the init function in order to automate the connector submission
+            // into the Tableau's framework (Tableau Desktop or server)
+            myConnector.init = function(initCallback){
+                // Your init code here
+                initCallback();
+                tableau.connectionName = "public-demo-ds";
+                tableau.submit();
+            };
+            myConnector.shutdown = function(shutdownCallback) {
+                // Your shutdown code here
+                shutdownCallback();
+            }
+            // Declare the data to Tableau that we are returning from Foursquare
+            myConnector.getSchema = _getSchema;
+
+            // This function actually make the foursquare API call and
+            // parses the results and passes them back to Tableau
+            myConnector.getData = _getData;
+
+            // Register the tableau connector, call this last
+            tableau.registerConnector(myConnector);  })();
+
+    </script>
+</head>
+
+<body>
+    <div class="container container-table">
+        <div class="row vertical-center-row">
+            <div class="text-center col-md-4 col-md-offset-4">
+                
+            </div>
+        </div>
+    </div>
+</body>
+</html>
